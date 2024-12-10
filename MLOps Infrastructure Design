@@ -1,0 +1,50 @@
+from airflow import DAG # type: ignore
+from airflow.operators.python_operator import PythonOperator # type: ignore
+from airflow.providers.postgres.operators.postgres import PostgresOperator # type: ignore
+from datetime import datetime
+
+# Define custom functions for pipeline tasks
+def train_model_function():
+    print("Training the model...")
+
+def deploy_model_function():
+    print("Deploying the model...")
+
+def monitor_model_function():
+    print("Monitoring the model...")
+
+# Define the DAG
+with DAG(
+    'ml_pipeline',
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+) as dag:
+
+    # Data ingestion and transformation (using dbt)
+    dbt_run = PostgresOperator(
+        task_id='dbt_run',
+        postgres_conn_id='postgres_default',
+        sql='CALL dbt_run_model();',  # Replace with actual DBT run command
+    )
+
+    # Model training
+    train_model = PythonOperator(
+        task_id='train_model',
+        python_callable=train_model_function,
+    )
+
+    # Model deployment
+    deploy_model = PythonOperator(
+        task_id='deploy_model',
+        python_callable=deploy_model_function,
+    )
+
+    # Model monitoring
+    monitor_model = PythonOperator(
+        task_id='monitor_model',
+        python_callable=monitor_model_function,
+    )
+
+    # Define task dependencies
+    dbt_run >> train_model >> deploy_model >> monitor_model
